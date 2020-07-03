@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+
+<head>
+
+    <title> programming exercise 3 </title>
+    <script src="https://d3js.org/d3.v3.min.js"> </script>
+
+</head>
+
+<body>
+    
+    <script>
+        // create SVG
+        var canvas = d3.select("body")
+                    .append("svg")
+                    .attr("height",500)
+                    .attr("width", 1200);
+        
+        d3.json("data.json", function(d) {
+            console.log(d)
+            var nodes=d.nodes;
+            var links=d.links;
+            // create a function calculate radius according to trade amount
+            var totalAmount = function(){
+                // create an empty dictionary to store amount and conncected for each id
+                var total={}
+                nodes.forEach(function(node){
+                    var trading=0;
+                    var numberOfConnected=0;
+                    links.forEach(function(link){
+                        if (link.node01==node.id || link.node02==node.id){
+                            trading+=link.amount;
+                            numberOfConnected+=1;
+                        }
+                    });
+                    total[node.id]={trading:trading,connect:numberOfConnected};
+                })
+                return total;
+            }();
+            console.log(totalAmount)
+            // draw lines
+            var lines = canvas.selectAll("line")
+                .data(links)
+                .enter()
+                .append("line");
+            var line = lines
+                .attr("x1", function(d){
+                    var x1=nodes.filter(function(i){
+                        return i.id==d['node01']
+                    })[0]
+                    return x1.x
+                })
+                .attr("y1", function(d){
+                    var y1=nodes.filter(function(i){
+                        return i.id==d['node01']
+                    })[0]
+                    return y1.y
+                })
+                .attr("x2", function(d){
+                    var x2=nodes.filter(function(i){
+                        return i.id==d['node02']
+                    })[0]
+                    return x2.x
+                })
+                .attr("y2", function(d){
+                    var y2=nodes.filter(function(i){
+                        return i.id==d['node02']
+                    })[0]
+                    return y2.y
+                })
+                .attr("stroke-width", function(d){
+                    return d.amount/120;
+                })
+                .style("stroke","grey")
+            // draw circles
+            var circles = canvas.selectAll("circle")
+                .data(nodes)
+                .enter()
+                .append("circle");
+            var circle = circles
+                .attr("id",function(d){
+                    return d.id;
+                })
+                .attr("cx", function(d) {
+                    return d.x;
+                })
+                .attr("cy", function(d) {
+                    return d.y;
+                })
+                .attr("r", function(d){
+                    return totalAmount[d.id].trading/70;
+                })
+                .style("fill", "#9B95FF");
+                    
+            // set text
+            var text = canvas.selectAll('text')
+                .data(nodes)
+                .enter()
+                .append('text')
+                .attr('x',function(d){
+                    return d.x-30
+                })
+                .attr('y',function(d){
+                    return d.y-30
+                })
+                .text(function(d){
+                    return d.id+','+'Trading: '+totalAmount[d.id].trading+','+'Connect: '+totalAmount[d.id].connect
+                })
+                .style("fill","#004669")
+                .style("font-weight", "bold")
+                .style("opacity",0);
+            // interactive visualization
+            d3.selectAll("circle")
+                .on("mouseover",function(){
+                    var id = d3.select(this).attr("id");
+                    // for circle
+                    canvas.selectAll("circle").style("opacity",0.5);
+                    d3.select(this).style("opacity",1);
+                    // for line
+                    canvas.selectAll("line").style("opacity",function(d){
+                        if (d.node01==id || d.node02==id){return 1}
+                        else {return 0.1}
+                    });
+                    // for text
+                    canvas.selectAll("text").style("opacity",function(d){
+                        if (d.id==id){return 1}
+                        else {return 0}
+                    });
+                })
+                .on("mouseout",function(){
+                    canvas.selectAll("circle").style("opacity",1);
+                    canvas.selectAll("line").style("opacity",1);
+                    canvas.selectAll("text").style("opacity",0);
+                    })
+        });
+
+    </script>
+</body>
+</html>
